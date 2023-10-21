@@ -22,12 +22,12 @@ export const LoginView = () => {
 					<input
 						type="text"
 						placeholder="Login"
-						className="input input-bordered input-ghost w-full max-w-xs"
+						className="input input-bordered input-ghost w-full "
 					/>
 					<input
 						type="password"
 						placeholder="Password"
-						className="input input-bordered w-full max-w-xs"
+						className="input input-bordered w-full "
 					/>
 				</div>
 				<Button
