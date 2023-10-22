@@ -1,28 +1,17 @@
 import { MouseEventHandler, ReactNode } from "react";
 import Icon from "@mdi/react";
-import cx from "clsx";
 import clsx from "clsx";
 import Link from "next/link";
-import { Url } from "url";
 
 export type IconButton = {
 	title: string;
 	path: string;
 };
 
-export type ButtonKind =
-	| "btn"
-	| "primary"
-	| "secondary"
-	| "accent"
-	| "ghost"
-	| "link";
-
 interface Props {
-	kind?: ButtonKind;
 	type?: "button" | "submit" | "reset";
 	outline?: boolean;
-	children: ReactNode;
+	children?: ReactNode;
 	icon?: IconButton;
 	size?: "btn-md" | "btn-sm";
 	onClick?: MouseEventHandler<HTMLButtonElement>;
@@ -32,10 +21,12 @@ interface Props {
 	className?: string;
 	href?: string;
 	externalHref?: string;
+	iconOnly?: boolean;
+	onMouseDown?: MouseEventHandler<HTMLButtonElement>;
+	onMouseUp?: MouseEventHandler<HTMLButtonElement>;
 }
 
 export const Button = ({
-	kind = "btn",
 	outline,
 	children,
 	icon,
@@ -48,12 +39,17 @@ export const Button = ({
 	href,
 	externalHref,
 	type = "button",
+	iconOnly,
+	onMouseDown,
+	onMouseUp,
+	...attrs
 }: Props) => {
 	const currentClassName = clsx(
 		"btn",
 		"gap-3",
 		size === "btn-md" && "",
 		size === "btn-sm" && "btn-sm",
+		iconOnly && "btn-square",
 		className
 	);
 
@@ -101,11 +97,14 @@ export const Button = ({
 
 	return (
 		<button
+			{...attrs}
 			type={type}
 			className={currentClassName}
 			aria-disabled={!!disabled}
 			disabled={!!disabled}
 			onClick={onClick}
+			onMouseDown={onMouseDown}
+			onMouseUp={onMouseUp}
 		>
 			{content}
 		</button>

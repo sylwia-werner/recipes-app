@@ -1,49 +1,79 @@
 "use client";
 import { Button } from "@/components/button/Button";
-import { mdiAccount, mdiCreation, mdiLogin } from "@mdi/js";
+import { TextInput } from "@/components/inputs/text/TextInput";
+import { mdiCreation } from "@mdi/js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SyntheticEvent, useState } from "react";
+
+type FormType = {
+	login: string;
+	email: string;
+	password: string;
+};
 
 export const RegisterView = () => {
+	const [form, setForm] = useState<FormType>({
+		login: "",
+		email: "",
+		password: "",
+	});
+
 	const { push } = useRouter();
 
-	const handleSubmit = () => {
+	const handleSubmit = (e: SyntheticEvent) => {
+		e.preventDefault();
+
+		// TODO: VALIDATION
+
 		push("/login");
 	};
 
 	return (
 		<div className="w-full text-center">
 			<p className="font-normal">Welcome</p>
-			<h1 className="text-xl font-bold mt-2">Create your account</h1>
+			<h1 className="mt-2 text-xl font-bold">Create your account</h1>
 			<form onSubmit={handleSubmit}>
 				<div className="flex flex-col gap-4 mt-8">
-					<input
+					<TextInput
 						type="text"
-						placeholder="Login"
-						className="input input-bordered input-ghost w-full max-w-xs"
+						placeholder="Enter your login"
+						label="Login"
+						className="w-full input input-bordered input-ghost"
+						value={form.login}
+						onChange={value => setForm({ ...form, login: value })}
 					/>
-					<input
-						type="email"
-						placeholder="Email Address"
-						className="input input-bordered input-ghost w-full max-w-xs"
+					<TextInput
+						type="text"
+						placeholder="Enter your email"
+						label="Email"
+						className="w-full input input-bordered input-ghost"
+						value={form.email}
+						onChange={value => setForm({ ...form, email: value })}
 					/>
-					<input
+
+					<TextInput
 						type="password"
-						placeholder="Password"
-						className="input input-bordered w-full max-w-xs"
+						placeholder="Enter your password"
+						label="Password"
+						className="w-full input input-bordered input-ghost"
+						value={form.password}
+						onChange={value =>
+							setForm({ ...form, password: value })
+						}
 					/>
 				</div>
 				<Button
-					className="btn-primary w-full mt-8"
+					className="w-full mt-8 btn-primary"
 					icon={{ path: mdiCreation, title: "Sign in" }}
 					size="btn-md"
 					type="submit"
 				>
-					Create account
+					Sign up
 				</Button>
 			</form>
 
-			<Link href="/login" className="flex justify-center text-sm mt-6">
+			<Link href="/login" className="flex justify-center mt-6 text-sm">
 				Have an account?
 			</Link>
 		</div>
