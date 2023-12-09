@@ -96,7 +96,21 @@ export class AuthService {
     return tokens;
   }
 
-  logout() {}
+  async logout(userId: string) {
+    // updateMany to avoid spamming for instance logout button,
+    // sending many requests and setting hashedRt to null
+    await this.prisma.users.updateMany({
+      where: {
+        id: userId,
+        hashedRt: {
+          not: null,
+        },
+      },
+      data: {
+        hashedRt: null,
+      },
+    });
+  }
 
   refreshTokens() {}
 }
