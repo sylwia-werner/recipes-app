@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthDto } from './dto';
 import * as argon from 'argon2';
@@ -46,6 +46,19 @@ export class AuthService {
     };
   }
 
+  async updateRtHash(userId: string, rt: string) {
+    const hashedRt = await this.hashData(rt);
+
+    await this.prisma.users.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        hashedRt,
+      },
+    });
+  }
+
   async signupLocal(dto: AuthDto): Promise<Tokens> {
     const hash = await this.hashData(dto.password);
 
@@ -57,11 +70,31 @@ export class AuthService {
     });
 
     const tokens = await this.getTokens(newUser.id, newUser.email);
-
+    await this.updateRtHash(newUser.id, tokens.refresh_token);
     return tokens;
   }
 
-  signinLocal() {}
+  async signinLocal(dto: AuthDto) {
+    const user = await this.prisma.users.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (!user) {
+      throw new ForbiddenException('User does not exist.');
+    }
+
+    const passwordMatches = await argon.verify(user.hash, dto.password);
+
+    if (!passwordMatches) {
+      throw new ForbiddenException('Incorrect password.');
+    }
+
+    const tokens = await this.getTokens(user.id, user.email);
+    await this.updateRtHash(user.id, tokens.refresh_token);
+    return tokens;
+  }
 
   logout() {}
 
