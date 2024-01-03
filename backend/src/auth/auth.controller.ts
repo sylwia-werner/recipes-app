@@ -5,13 +5,12 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthDto } from './dto';
 import { Tokens } from './types';
-import { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { GetUserId } from 'src/decorators/get-user-id.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -26,25 +25,20 @@ export class AuthController {
   @Post('local/signin')
   @HttpCode(HttpStatus.OK)
   signinLocal(@Body() dto: AuthDto): Promise<Tokens> {
-    console.log('ELKO');
     return this.authService.signinLocal(dto);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@Req() req: Request) {
-    const user = req.user;
-
-    console.log(user['id'], 'USER ID');
-    // TODO: refactor
-    return this.authService.logout(user['id']);
+  logout(@GetUserId() userId: string): Promise<boolean> {
+    return this.authService.logout(userId);
   }
 
-  @UseGuards(AuthGuard('jwt-refresh'))
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refreshTokens() {
-    return this.authService.refreshTokens();
+    // const user = req.user;
+    // return this.authService.refreshTokens(user['id'], user['refreshToken']);
   }
 }

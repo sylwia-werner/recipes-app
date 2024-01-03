@@ -4,12 +4,14 @@ import { AuthDto } from './dto';
 import * as argon from 'argon2';
 import { Tokens } from './types';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   hashData(data: string) {
@@ -17,25 +19,28 @@ export class AuthService {
   }
 
   async getTokens(userId: string, email: string): Promise<Tokens> {
+    const atExpirationTime = this.configService.get<number>('AT_EXPIRATION');
+    const rtExpirationTime = this.configService.get<number>('RT_EXPIRATION');
+
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
         {
-          sub: userId,
+          id: userId,
           email,
         },
         {
           secret: process.env.AT_SECRET,
-          expiresIn: process.env.AT_EXPIRATION,
+          expiresIn: atExpirationTime,
         },
       ),
       this.jwtService.signAsync(
         {
-          sub: userId,
+          id: userId,
           email,
         },
         {
           secret: process.env.RT_SECRET,
-          expiresIn: process.env.RT_EXPIRATION,
+          expiresIn: rtExpirationTime,
         },
       ),
     ]);
@@ -74,7 +79,7 @@ export class AuthService {
     return tokens;
   }
 
-  async signinLocal(dto: AuthDto) {
+  async signinLocal(dto: AuthDto): Promise<Tokens> {
     const user = await this.prisma.users.findUnique({
       where: {
         email: dto.email,
@@ -96,9 +101,10 @@ export class AuthService {
     return tokens;
   }
 
-  async logout(userId: string) {
+  async logout(userId: string): Promise<boolean> {
     // updateMany to avoid spamming for instance logout button,
     // sending many requests and setting hashedRt to null
+    console.log(userId, 'userId');
     await this.prisma.users.updateMany({
       where: {
         id: userId,
@@ -110,7 +116,11 @@ export class AuthService {
         hashedRt: null,
       },
     });
+
+    return true;
   }
 
-  refreshTokens() {}
+  // refreshTokens(userId: number, rt: string) {
+
+  // }
 }
