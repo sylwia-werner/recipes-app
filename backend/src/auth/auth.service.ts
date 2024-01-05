@@ -5,6 +5,7 @@ import * as argon from 'argon2';
 import { Tokens } from './types';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AuthService {
@@ -19,30 +20,24 @@ export class AuthService {
   }
 
   async getTokens(userId: string, email: string): Promise<Tokens> {
-    const atExpirationTime = this.configService.get<number>('AT_EXPIRATION');
-    const rtExpirationTime = this.configService.get<number>('RT_EXPIRATION');
+    const payload = {
+      id: userId,
+      email,
+    };
 
     const [at, rt] = await Promise.all([
-      this.jwtService.signAsync(
-        {
-          id: userId,
-          email,
-        },
-        {
-          secret: process.env.AT_SECRET,
-          expiresIn: atExpirationTime,
-        },
-      ),
-      this.jwtService.signAsync(
-        {
-          id: userId,
-          email,
-        },
-        {
-          secret: process.env.RT_SECRET,
-          expiresIn: rtExpirationTime,
-        },
-      ),
+      this.jwtService.signAsync(payload, {
+        secret: 'at-secret',
+        expiresIn: 900,
+        // secret: this.configService.get<string>('at_secret'),
+        // expiresIn: this.configService.get<number>('at_expiration'),
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: 'rt-secret',
+        expiresIn: 604800,
+        // secret: this.configService.get<string>('rt_secret'),
+        // expiresIn: this.configService.get<number>('rt_expiration'),
+      }),
     ]);
 
     return {
@@ -67,12 +62,21 @@ export class AuthService {
   async signupLocal(dto: AuthDto): Promise<Tokens> {
     const hash = await this.hashData(dto.password);
 
-    const newUser = await this.prisma.users.create({
-      data: {
-        email: dto.email,
-        hash,
-      },
-    });
+    const newUser = await this.prisma.users
+      .create({
+        data: {
+          email: dto.email,
+          hash,
+        },
+      })
+      .catch((error) => {
+        if (error instanceof PrismaClientKnownRequestError) {
+          if (error.code === 'P2002') {
+            throw new ForbiddenException('Credentials incorrect');
+          }
+        }
+        throw error;
+      });
 
     const tokens = await this.getTokens(newUser.id, newUser.email);
     await this.updateRtHash(newUser.id, tokens.refresh_token);
@@ -104,7 +108,7 @@ export class AuthService {
   async logout(userId: string): Promise<boolean> {
     // updateMany to avoid spamming for instance logout button,
     // sending many requests and setting hashedRt to null
-    console.log(userId, 'userId');
+    console.log(userId, 'userId | Service');
     await this.prisma.users.updateMany({
       where: {
         id: userId,
@@ -120,15 +124,14 @@ export class AuthService {
     return true;
   }
 
-  async refreshTokens(userId: string, rt: string) {
+  async refreshTokens(userId: string, rt: string): Promise<Tokens> {
     const user = await this.prisma.users.findUnique({
       where: {
         id: userId,
       },
     });
-    console.log(user, 'refreshTokens service');
 
-    if (!user) throw new ForbiddenException('Access denied');
+    if (!user || !user.hashedRt) throw new ForbiddenException('Access denied');
 
     const isRtMatching = await argon.verify(user.hashedRt, rt);
 
@@ -136,6 +139,7 @@ export class AuthService {
 
     const tokens = await this.getTokens(user.id, user.email);
     await this.updateRtHash(user.id, tokens.refresh_token);
+
     return tokens;
   }
 }

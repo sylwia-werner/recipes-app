@@ -7,15 +7,14 @@ import { JwtPayload } from '../types';
 @Injectable()
 export class AtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private configService: ConfigService) {
-    const atExpirationTime = configService.get<number>('AT_EXPIRATION');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: atExpirationTime,
-      // passReqToCallback: true,
+      secretOrKey: 'at-secret',
+      // secretOrKey: configService.get<string>('at_secret'),
     });
   }
 
   async validate(payload: JwtPayload) {
-    return payload;
+    return { id: payload.id, email: payload.email };
   }
 }
