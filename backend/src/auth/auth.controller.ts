@@ -11,10 +11,15 @@ import { AuthDto } from './dto';
 import { Tokens } from './types';
 import { GetUserId, GetUserProperty, Public } from 'src/decorators';
 import { RtGuard } from './guards';
+import { EnvironmentVariables } from 'config';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService<EnvironmentVariables>,
+  ) {}
 
   @Public()
   @Post('local/signup')

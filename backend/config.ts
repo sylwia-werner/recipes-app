@@ -1,3 +1,10 @@
+export interface EnvironmentVariables {
+  AT_SECRET: string;
+  RT_SECRET: string;
+  AT_EXPIRATION: number;
+  RT_EXPIRATION: number;
+}
+
 export default () => ({
   port: parseInt(process.env.PORT, 10) || 3000,
   database_url: process.env.DATABASE_URL,

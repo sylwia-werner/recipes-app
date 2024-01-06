@@ -6,13 +6,14 @@ import { Tokens } from './types';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { EnvironmentVariables } from 'config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private configService: ConfigService,
+    private configService: ConfigService<EnvironmentVariables>,
   ) {}
 
   hashData(data: string) {
@@ -29,14 +30,13 @@ export class AuthService {
       this.jwtService.signAsync(payload, {
         secret: 'at-secret',
         expiresIn: 900,
-        // secret: this.configService.get<string>('at_secret'),
-        // expiresIn: this.configService.get<number>('at_expiration'),
+        // TODO: figure out why getting AT with config service doesn't work
+        // secret: this.configService.get('AT_SECRET', { infer: true }),
+        // expiresIn: this.configService.get('AT_EXPIRATION', { infer: true }),
       }),
       this.jwtService.signAsync(payload, {
-        secret: 'rt-secret',
-        expiresIn: 604800,
-        // secret: this.configService.get<string>('rt_secret'),
-        // expiresIn: this.configService.get<number>('rt_expiration'),
+        secret: this.configService.get('RT_SECRET', { infer: true }),
+        expiresIn: this.configService.get('RT_EXPIRATION', { infer: true }),
       }),
     ]);
 
@@ -108,7 +108,6 @@ export class AuthService {
   async logout(userId: string): Promise<boolean> {
     // updateMany to avoid spamming for instance logout button,
     // sending many requests and setting hashedRt to null
-    console.log(userId, 'userId | Service');
     await this.prisma.users.updateMany({
       where: {
         id: userId,
