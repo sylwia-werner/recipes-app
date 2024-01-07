@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import config from 'config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards';
+import { RecipesModule } from './recipes/recipes.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AtGuard } from './auth/guards';
       load: [config],
     }),
     AuthModule,
+    RecipesModule,
     PrismaModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AtGuard }],
