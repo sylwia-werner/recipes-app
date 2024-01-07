@@ -1,8 +1,13 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { recipes } from '@prisma/client';
-import { CreateRecipeDto, RecipeDto, UpdateRecipeDto } from './dto';
-import { Difficulty } from 'src/common/constants';
+import {
+  CreateRecipeDto,
+  PaginatedRecipesDto,
+  RecipeDto,
+  UpdateRecipeDto,
+} from './dto';
+import { DEFAULT_RECIPES_TOTAL_PAGES, Difficulty } from 'src/common/constants';
 import { UsersService } from 'src/users/users.service';
 
 // TODO: Error handling
@@ -14,9 +19,25 @@ export class RecipesService {
     private usersService: UsersService,
   ) {}
 
-  async getRecipes(): Promise<RecipeDto[]> {
-    const recipesFromDatabase = await this.prisma.recipes.findMany();
-    return this.mapToRecipeDtos(recipesFromDatabase);
+  async getRecipes(
+    page?: number,
+    limit?: number,
+  ): Promise<PaginatedRecipesDto> {
+    const skip = (page - 1) * limit || 0;
+    const take = (limit || DEFAULT_RECIPES_TOTAL_PAGES).toString();
+
+    const recipes = await this.prisma.recipes.findMany({
+      skip,
+      // For some reason Primsa takes 'take' always as a string, unless you manually add parseInt explicitly to a variable 💩
+      take: parseInt(take),
+    });
+
+    const transformedRecipes = this.mapToRecipeDtos(recipes);
+
+    return {
+      result: transformedRecipes,
+      total: transformedRecipes.length,
+    };
   }
 
   async getRecipeById(id: string): Promise<RecipeDto> {

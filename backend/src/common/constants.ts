@@ -3,3 +3,5 @@ export enum Difficulty {
   MEDIUM = 'medium',
   HARD = 'hard',
 }
+
+export const DEFAULT_RECIPES_TOTAL_PAGES = '5';
