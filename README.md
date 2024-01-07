@@ -15,6 +15,10 @@ npm i
 npm run start:dev
 ```
 
+## Prisma
+
+You can see db collections with command ```npx prisma studio```
+
 ## Endpoints
 
 Endpoints without **public** require ```Bearer <access_token>```.
