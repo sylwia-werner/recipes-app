@@ -15,6 +15,8 @@ import {
 } from './dto';
 import { DEFAULT_RECIPES_TOTAL_PAGES, Difficulty } from 'src/common/constants';
 import { UsersService } from 'src/users/users.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 // TODO: Error handling
 
@@ -23,12 +25,21 @@ export class RecipesService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async getRecipes(
     page?: number,
     limit?: number,
   ): Promise<PaginatedRecipesDto> {
+    const cacheKey = `getRecipes:${page}:${limit}`;
+    const cachedData =
+      await this.cacheManager.get<PaginatedRecipesDto>(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
     const skip = (page - 1) * limit || 0;
     const take = (limit || DEFAULT_RECIPES_TOTAL_PAGES).toString();
 
@@ -40,10 +51,16 @@ export class RecipesService {
 
     const transformedRecipes = this.mapToRecipeDtos(recipes);
 
-    return {
+    const response = {
       result: transformedRecipes,
       total: transformedRecipes.length,
     };
+
+    await this.cacheManager.set(cacheKey, response);
+
+    console.log('Test - was not cached');
+
+    return response;
   }
 
   async getRecipeById(id: string): Promise<RecipeDto> {
