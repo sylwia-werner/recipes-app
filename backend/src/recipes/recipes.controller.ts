@@ -1,7 +1,12 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { GetUserId, Public } from 'src/decorators';
 import { RecipesService } from './recipes.service';
-import { CreateRecipeDto, RecipeDto, UpdateRecipeDto } from './dto';
+import {
+  CreateRecipeDto,
+  PaginatedRecipesDto,
+  RecipeDto,
+  UpdateRecipeDto,
+} from './dto';
 
 @Controller('recipes')
 export class RecipesController {
@@ -9,8 +14,11 @@ export class RecipesController {
 
   @Public()
   @Get()
-  getRecipes(): Promise<RecipeDto[]> {
-    return this.recipesService.getRecipes();
+  getRecipes(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedRecipesDto> {
+    return this.recipesService.getRecipes(page, limit);
   }
 
   @Public()
