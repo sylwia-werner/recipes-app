@@ -16,49 +16,6 @@ export class AuthService {
     private configService: ConfigService<EnvironmentVariables>,
   ) {}
 
-  hashData(data: string) {
-    return argon.hash(data);
-  }
-
-  async getTokens(userId: string, email: string): Promise<Tokens> {
-    const payload = {
-      id: userId,
-      email,
-    };
-
-    const [at, rt] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: 'at-secret',
-        expiresIn: 900,
-        // TODO: figure out why getting AT with config service doesn't work
-        // secret: this.configService.get('AT_SECRET', { infer: true }),
-        // expiresIn: this.configService.get('AT_EXPIRATION', { infer: true }),
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get('RT_SECRET', { infer: true }),
-        expiresIn: this.configService.get('RT_EXPIRATION', { infer: true }),
-      }),
-    ]);
-
-    return {
-      access_token: at,
-      refresh_token: rt,
-    };
-  }
-
-  async updateRtHash(userId: string, rt: string) {
-    const hashedRt = await this.hashData(rt);
-
-    await this.prisma.users.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        hashedRt,
-      },
-    });
-  }
-
   async signupLocal(dto: AuthDto): Promise<Tokens> {
     const hash = await this.hashData(dto.password);
 
@@ -121,6 +78,49 @@ export class AuthService {
     });
 
     return true;
+  }
+
+  private hashData(data: string) {
+    return argon.hash(data);
+  }
+
+  async getTokens(userId: string, email: string): Promise<Tokens> {
+    const payload = {
+      id: userId,
+      email,
+    };
+
+    const [at, rt] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: 'at-secret',
+        expiresIn: 900,
+        // TODO: figure out why getting AT with config service doesn't work
+        // secret: this.configService.get('AT_SECRET', { infer: true }),
+        // expiresIn: this.configService.get('AT_EXPIRATION', { infer: true }),
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get('RT_SECRET', { infer: true }),
+        expiresIn: this.configService.get('RT_EXPIRATION', { infer: true }),
+      }),
+    ]);
+
+    return {
+      access_token: at,
+      refresh_token: rt,
+    };
+  }
+
+  async updateRtHash(userId: string, rt: string) {
+    const hashedRt = await this.hashData(rt);
+
+    await this.prisma.users.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        hashedRt,
+      },
+    });
   }
 
   async refreshTokens(userId: string, rt: string): Promise<Tokens> {
