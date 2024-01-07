@@ -1,5 +1,11 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { recipes } from '@prisma/client';
 import {
   CreateRecipeDto,
@@ -45,14 +51,19 @@ export class RecipesService {
       where: { id },
     });
 
+    if (!foundRecipe) {
+      throw new NotFoundException(`Recipe with ID ${id} not found`);
+    }
+
     const transformedRecipe = this.mapToRecipeDto(foundRecipe);
 
     return transformedRecipe;
   }
 
-  async addRecipe(newRecipe: CreateRecipeDto): Promise<RecipeDto> {
-    const { userId } = newRecipe;
-
+  async addRecipe(
+    newRecipe: CreateRecipeDto,
+    userId: string,
+  ): Promise<RecipeDto> {
     const foundUser = await this.usersService.userExists(userId);
 
     if (!foundUser) {
@@ -63,7 +74,7 @@ export class RecipesService {
       data: {
         ...newRecipe,
         difficulty: newRecipe.difficulty as Difficulty,
-        userId: newRecipe.userId,
+        userId: userId,
       },
     });
 
@@ -80,7 +91,7 @@ export class RecipesService {
     const foundRecipe = await this.verifyAuthor(recipeId, userId);
 
     if (!foundRecipe) {
-      throw new NotFoundException(`Recipe with ID ${recipeId} not found`);
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
     const updatedRecipe = await this.prisma.recipes.update({
@@ -91,6 +102,18 @@ export class RecipesService {
     const transformedRecipe = this.mapToRecipeDto(updatedRecipe);
 
     return transformedRecipe;
+  }
+
+  async deleteRecipe(recipeId: string, userId: string) {
+    const foundRecipe = await this.verifyAuthor(recipeId, userId);
+
+    if (!foundRecipe) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    await this.prisma.recipes.delete({
+      where: { id: recipeId },
+    });
   }
 
   mapToRecipeDtos(recipesFromDatabase: recipes[]): RecipeDto[] {
@@ -106,10 +129,6 @@ export class RecipesService {
       difficulty: recipe.difficulty as Difficulty,
     };
   }
-
-  // private isDifficultyType(str: string): str is Difficulty {
-  //   return Object.values(Difficulty).includes(str as any);
-  // }
 
   async verifyAuthor(recipeId: string, userId: string): Promise<boolean> {
     const recipe = await this.prisma.users.findFirst({

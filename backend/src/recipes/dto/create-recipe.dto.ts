@@ -21,8 +21,4 @@ export class CreateRecipeDto {
   @IsNotEmpty()
   @IsEnum(Difficulty)
   difficulty: Difficulty;
-
-  @IsNotEmpty()
-  @IsString()
-  userId: string;
 }
