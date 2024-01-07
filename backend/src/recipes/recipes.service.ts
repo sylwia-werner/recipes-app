@@ -1,5 +1,11 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { recipes } from '@prisma/client';
 import {
   CreateRecipeDto,
@@ -9,6 +15,8 @@ import {
 } from './dto';
 import { DEFAULT_RECIPES_TOTAL_PAGES, Difficulty } from 'src/common/constants';
 import { UsersService } from 'src/users/users.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 // TODO: Error handling
 
@@ -17,12 +25,21 @@ export class RecipesService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async getRecipes(
     page?: number,
     limit?: number,
   ): Promise<PaginatedRecipesDto> {
+    const cacheKey = `getRecipes:${page}:${limit}`;
+    const cachedData =
+      await this.cacheManager.get<PaginatedRecipesDto>(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
     const skip = (page - 1) * limit || 0;
     const take = (limit || DEFAULT_RECIPES_TOTAL_PAGES).toString();
 
@@ -34,10 +51,16 @@ export class RecipesService {
 
     const transformedRecipes = this.mapToRecipeDtos(recipes);
 
-    return {
+    const response = {
       result: transformedRecipes,
       total: transformedRecipes.length,
     };
+
+    await this.cacheManager.set(cacheKey, response);
+
+    console.log('Test - was not cached');
+
+    return response;
   }
 
   async getRecipeById(id: string): Promise<RecipeDto> {
@@ -45,14 +68,19 @@ export class RecipesService {
       where: { id },
     });
 
+    if (!foundRecipe) {
+      throw new NotFoundException(`Recipe with ID ${id} not found`);
+    }
+
     const transformedRecipe = this.mapToRecipeDto(foundRecipe);
 
     return transformedRecipe;
   }
 
-  async addRecipe(newRecipe: CreateRecipeDto): Promise<RecipeDto> {
-    const { userId } = newRecipe;
-
+  async addRecipe(
+    newRecipe: CreateRecipeDto,
+    userId: string,
+  ): Promise<RecipeDto> {
     const foundUser = await this.usersService.userExists(userId);
 
     if (!foundUser) {
@@ -63,7 +91,7 @@ export class RecipesService {
       data: {
         ...newRecipe,
         difficulty: newRecipe.difficulty as Difficulty,
-        userId: newRecipe.userId,
+        userId: userId,
       },
     });
 
@@ -80,7 +108,7 @@ export class RecipesService {
     const foundRecipe = await this.verifyAuthor(recipeId, userId);
 
     if (!foundRecipe) {
-      throw new NotFoundException(`Recipe with ID ${recipeId} not found`);
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
     const updatedRecipe = await this.prisma.recipes.update({
@@ -91,6 +119,18 @@ export class RecipesService {
     const transformedRecipe = this.mapToRecipeDto(updatedRecipe);
 
     return transformedRecipe;
+  }
+
+  async deleteRecipe(recipeId: string, userId: string) {
+    const foundRecipe = await this.verifyAuthor(recipeId, userId);
+
+    if (!foundRecipe) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    await this.prisma.recipes.delete({
+      where: { id: recipeId },
+    });
   }
 
   mapToRecipeDtos(recipesFromDatabase: recipes[]): RecipeDto[] {
@@ -106,10 +146,6 @@ export class RecipesService {
       difficulty: recipe.difficulty as Difficulty,
     };
   }
-
-  // private isDifficultyType(str: string): str is Difficulty {
-  //   return Object.values(Difficulty).includes(str as any);
-  // }
 
   async verifyAuthor(recipeId: string, userId: string): Promise<boolean> {
     const recipe = await this.prisma.users.findFirst({
