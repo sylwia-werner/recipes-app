@@ -13,7 +13,8 @@ export class SearchController {
     @Query('query') query: string,
     @Query('page') page: number,
     @Query('limit') limit: number,
+    @Query('difficulty') difficulty: string,
   ): Promise<PaginatedRecipesDto> {
-    return this.recipesService.searchRecipes(query, page, limit);
+    return this.recipesService.searchRecipes(query, page, limit, difficulty);
   }
 }
