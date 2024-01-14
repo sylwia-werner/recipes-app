@@ -24,10 +24,14 @@ You can see db collections with command ```npx prisma studio```
 Endpoints without **public** require ```Bearer <access_token>```.
 Refresh tokens endpoint requires ```Bearer <refresh_token>```
 
+**Auth:**
+
 - POST (public) Signup: /auth/local/signup
 - POST (public) Signin: /auth/local/signin
 - POST Logout: /auth/logout
 - POST Refresh tokens: /auth/refresh
+
+**Recipes:**
 
 - GET (public) Get recipes: /recipes?page=x&limit=x (pagination with optional page and limit query params)
 - GET (public) Get recipe: /recipes/id
