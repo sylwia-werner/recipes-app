@@ -133,20 +133,6 @@ export class RecipesService {
     });
   }
 
-  mapToRecipeDtos(recipesFromDatabase: recipes[]): RecipeDto[] {
-    return recipesFromDatabase.map((recipeFromDb) => ({
-      ...recipeFromDb,
-      difficulty: recipeFromDb.difficulty as Difficulty,
-    }));
-  }
-
-  mapToRecipeDto(recipe: recipes): RecipeDto {
-    return {
-      ...recipe,
-      difficulty: recipe.difficulty as Difficulty,
-    };
-  }
-
   async verifyAuthor(recipeId: string, userId: string): Promise<boolean> {
     const recipe = await this.prisma.users.findFirst({
       where: {
@@ -160,5 +146,19 @@ export class RecipesService {
     });
 
     return !!recipe;
+  }
+
+  public mapToRecipeDtos(recipesFromDatabase: recipes[]): RecipeDto[] {
+    return recipesFromDatabase.map((recipeFromDb) => ({
+      ...recipeFromDb,
+      difficulty: recipeFromDb.difficulty as Difficulty,
+    }));
+  }
+
+  public mapToRecipeDto(recipe: recipes): RecipeDto {
+    return {
+      ...recipe,
+      difficulty: recipe.difficulty as Difficulty,
+    };
   }
 }
