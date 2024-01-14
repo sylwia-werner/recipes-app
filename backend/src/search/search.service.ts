@@ -14,6 +14,7 @@ export class SearchService {
     query: string,
     page?: number,
     limit?: number,
+    difficulty?: string,
   ): Promise<PaginatedRecipesDto> {
     const skip = (page - 1) * limit || 0;
     const take = (limit || DEFAULT_RECIPES_TOTAL_PAGES).toString();
@@ -23,6 +24,9 @@ export class SearchService {
         name: {
           contains: query,
           mode: 'insensitive',
+        },
+        difficulty: {
+          equals: difficulty,
         },
       },
       skip,
