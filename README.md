@@ -29,8 +29,10 @@ Refresh tokens endpoint requires ```Bearer <refresh_token>```
 - POST Logout: /auth/logout
 - POST Refresh tokens: /auth/refresh
 
-- GET (public) Get recipes: /recipes (optional pagination with page and limit query params)
+- GET (public) Get recipes: /recipes?page=x&limit=x (pagination with optional page and limit query params)
 - GET (public) Get recipe: /recipes/id
 - POST Add recipe: /recipes 
 - PUT Update recipe: /recipes/id
 - DELETE Delete recipe: /recipes/id
+
+- GET (public) Search recipes: /search?query=text&page=x&limit=x&difficulty=text (pagination with optional difficulty, page and limit query params)
