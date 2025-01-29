@@ -45,7 +45,6 @@ export class RecipesService {
 
     const recipes = await this.prisma.recipes.findMany({
       skip,
-      // For some reason Primsa takes 'take' always as a string, unless you manually add parseInt explicitly to a variable 💩
       take: parseInt(take),
     });
 
